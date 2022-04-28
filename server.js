@@ -9,21 +9,41 @@ npm i knex sqlite3
 const express = require('express')
 const app = express()
 
+const server = require('http').Server(app)
+const io = require('socket.io')(server)
+
 const routerProducto = express.Router()
 const { listarProductos, agregarProducto } = require('./controllers/producto')
+const mensajes = require('./controllers/mensajes')
+//const { knexMensajes } = require('./db/config')
 app.use('/api/producto', routerProducto)
 
 app.use(express.urlencoded({ extended: true }))
 app.set('views', './views')
 app.set('view engine', 'ejs')
 
-//app.use(express.static('public'))
+app.use(express.static('public'))
 
 /* Mostrar productos */
 routerProducto.get('/listar', listarProductos)
 
 /* Guardar productos */
 routerProducto.post('/guardar', agregarProducto)
+
+io.on('connection', async(socket) => {
+    console.log('Usuario conectado')
+     /* Emitir todos los mensajes a un cliente nuevo */
+    socket.emit('messages', await mensajes.mostrarTodos())
+    /* Emitir a todos los clientes  
+    socket.on('new-message', function(data){
+        messages.push(data)
+        io.sockets.emit('messages', messages)*/
+    socket.on('new-message', async(data) => {
+        data.fyh = new Date().toLocaleString
+        mensajes.guardar(data)
+        io.socket.emit('messages', await mensajes.mostrarTodos())
+    })
+})
 
 /*Server*/
 const PORT = process.env.PORT || 8080
